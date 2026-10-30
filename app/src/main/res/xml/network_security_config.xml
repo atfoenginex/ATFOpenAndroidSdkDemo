@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    网络安全配置：允许 Charles 等抓包工具解密 HTTPS 流量。
+
+    debug-overrides 仅在 android:debuggable="true" 的构建（debug 包）中生效，
+    release 包仍只信任系统 CA，不受影响。
+-->
+<network-security-config>
+    <debug-overrides>
+        <trust-anchors>
+            <!-- 系统 CA + 用户安装的 CA（Charles 根证书装到手机后属于用户证书） -->
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </debug-overrides>
+</network-security-config>
