@@ -35,7 +35,8 @@ class AtfoDemoApplication : Application() {
             .forbidNetworkList(mutableListOf())
             // false 时由接入方自行调用 ATFOADSDKManager.getInstance().start()
             .grmAutoStart(true)
-            // 透传参数，接入方替换为自己的业务 id
+            .extra("userId","mock_oaid")
+            // 透传参数，接入方替换为自己的业务 id，这里userId是 oaid。
             .build()
 
         Log.i(TAG, "init SDK with ${DemoConfig.describe()}")
