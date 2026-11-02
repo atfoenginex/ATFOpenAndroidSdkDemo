@@ -51,7 +51,6 @@ class FeedSelfRenderAdActivity : AppCompatActivity() {
 
         val adSlot = ATFOAdSlot.Builder()
             .adType(AdType.FEED)
-            .activity(this)
             .slotId(DemoConfig.feedSelfRenderSlotId)
             .size(1080, 1080)
             .extras(mapOf("scene" to "feed_list"))

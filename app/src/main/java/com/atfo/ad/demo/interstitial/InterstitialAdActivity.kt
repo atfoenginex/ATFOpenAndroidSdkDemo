@@ -44,7 +44,6 @@ class InterstitialAdActivity : AppCompatActivity() {
 
         val adSlot = ATFOAdSlot.Builder()
             .adType(AdType.INTERSTITIAL)
-            .activity(this)
             .slotId(DemoConfig.slotIdOf(AdType.INTERSTITIAL))
             .size(1080, 1920)
             .extras(mapOf("scene" to "interstitial"))

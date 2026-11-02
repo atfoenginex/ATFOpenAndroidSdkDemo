@@ -45,7 +45,6 @@ class SplashAdActivity : AppCompatActivity() {
 
         val adSlot = ATFOAdSlot.Builder()
             .adType(AdType.SPLASH)
-            .activity(this)
             .slotId(DemoConfig.slotIdOf(AdType.SPLASH))
             .size(1080, 1920)
             .build()

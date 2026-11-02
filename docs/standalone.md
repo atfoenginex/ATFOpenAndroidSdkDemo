@@ -94,12 +94,12 @@ dependencyResolutionManagement {
 
 2、在项目的 app 下的 `build.gradle.kts` 中添加依赖：
 
-**最新版本号：2.9.5**
+**最新版本号：2.11.0**
 
 ```kotlin
 dependencies {
     // ATFO 广告核心组件
-    implementation("com.atfo.ad:core:2.9.5")
+    implementation("com.atfo.ad:core:2.11.0")
 }
 ```
 
@@ -120,6 +120,9 @@ dependencies {
 <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+
+<!-- 通知栏震动反馈 -->
+<uses-permission android:name="android.permission.VIBRATE" />
 ```
 
 ## 二、SDK 初始化
@@ -197,6 +200,8 @@ SDK 支持多种环境配置：
 
 加载统一走 `ATFOAdLoader(context, isDebug)`，第二个参数是调试日志开关，与初始化的 `debug` 保持一致即可；回调接口为 `ATFOAdLoader.AdLoadListener`（`onAdLoadSuccess` / `onAdLoadFailed`）。
 
+`showAd` 有两个入口，按广告类型选择：**Activity 入口** `showAd(activity, listener)` 用于插屏、激励视频、通知栏样式信息流；**容器入口** `showAd(container, listener)` 用于开屏与其余信息流模板；自渲染信息流不走 `showAd`，读 `ATFOAd.nativeInfo` 拼 UI 后调用 `registerInteraction`。
+
 ### 开屏广告
 
 ```kotlin
@@ -219,7 +224,6 @@ class SplashActivity : AppCompatActivity() {
         val adSlot = ATFOAdSlot.Builder()
             .adType(AdType.SPLASH)
             .timeout(5000)                    // 可选；超时以管理后台下发为准，建议不配置（见「注意事项」）
-            .activity(this)                   // 当前 Activity
             .slotId("") // 代码位 Id（向对接运营获取）
             .size(1080, 1920)
             .build()
@@ -316,7 +320,6 @@ class FeedAdActivity : AppCompatActivity() {
             .adType(AdType.FEED)
             .timeout(8000)                    // 可选；超时以管理后台下发为准，建议不配置（见「注意事项」）
             .slotId("") // 代码位 Id（向对接运营获取）
-            .activity(this)
             .size(1080, 1080)
             .extras(mapOf("scene" to "feed_list"))
             .build()
@@ -536,7 +539,6 @@ class InterstitialAdActivity : AppCompatActivity() {
         val adSlot = ATFOAdSlot.Builder()
             .adType(AdType.INTERSTITIAL)
             .timeout(10000)                   // 可选；超时以管理后台下发为准，建议不配置（见「注意事项」）
-            .activity(this)
             .slotId("") // 代码位 Id（向对接运营获取）
             .size(1080, 1920)
             .extras(mapOf("scene" to "interstitial"))
@@ -622,7 +624,6 @@ class RewardAdActivity : AppCompatActivity() {
         val adSlot = ATFOAdSlot.Builder()
             .adType(AdType.REWARD)
             .timeout(10000)                   // 可选；超时以管理后台下发为准，建议不配置（见「注意事项」）
-            .activity(this)
             .slotId("") // 代码位 Id（向对接运营获取）
             .size(720, 1280)
             .extras(mapOf("scene" to "reward"))
@@ -706,18 +707,18 @@ class RewardAdActivity : AppCompatActivity() {
 > 2. 模板选「信息流-通知广告」
 >
 > 如果需要使用非 ATFO 广告平台的代码位，需要在对应的平台后台创建代码位，选择 FEED 流广告类型，自渲染即可。
+>
+> 展示入口固定用 `showAd(activity, listener)`：通知栏卡片由 SDK 挂到当前 Activity 的 decorView 顶层，从屏幕顶部滑入，无需宿主提供容器。
 
 ```kotlin
 class NotifyAdActivity : AppCompatActivity() {
 
-    private lateinit var adContainer: FrameLayout
     private var notifyAdObject: ATFOAd? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_notify_ad)
 
-        adContainer = findViewById(R.id.ad_container)
 
         // 加载信息流广告
         loadNotifyAd()
@@ -728,7 +729,6 @@ class NotifyAdActivity : AppCompatActivity() {
             .adType(AdType.FEED)
             .timeout(8000)                    // 可选；超时以管理后台下发为准，建议不配置（见「注意事项」）
             .slotId("") // 代码位 Id（向对接运营获取）
-            .activity(this)
             .size(1000, 1000)
             .extras(mapOf("scene" to "notify_ad"))
             .build()
@@ -760,7 +760,7 @@ class NotifyAdActivity : AppCompatActivity() {
             return
         }
 
-        adObject.showAd(adContainer, object : AdInteractionListener {
+        adObject.showAd(this, object : AdInteractionListener {
             override fun onAdShowSuccess() {
                 Log.d("NotifyAd", "通知广告展示成功")
             }
@@ -993,7 +993,7 @@ override fun onAdLoadFailed(error: ATFOAdError) {
 ## 十一、技术支持
 
 - **技术支持**：support@atfo.com
-- **版本**：2.9.5
+- **版本**：2.11.0
 - **最低支持**：Android API 23（Android 6.0）
 
 ## 十二、SDK 涉及的三方库版本（若存在不兼容等问题，请联系开发进行定制化修改）

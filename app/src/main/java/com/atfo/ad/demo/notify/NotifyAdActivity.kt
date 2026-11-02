@@ -46,7 +46,6 @@ class NotifyAdActivity : AppCompatActivity() {
 
         val adSlot = ATFOAdSlot.Builder()
             .adType(AdType.FEED)
-            .activity(this)
             .slotId(DemoConfig.slotIdOf(AdType.FEED, DemoConfig.SCENE_NOTIFY))
             .size(1000, 1000)
             .extras(mapOf("scene" to DemoConfig.SCENE_NOTIFY))

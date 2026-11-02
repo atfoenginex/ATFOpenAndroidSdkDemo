@@ -47,7 +47,6 @@ class FeedAdActivity : AppCompatActivity() {
 
         val adSlot = ATFOAdSlot.Builder()
             .adType(AdType.FEED)
-            .activity(this)
             .slotId(DemoConfig.slotIdOf(AdType.FEED))
             .size(1080, 1080)
             .extras(mapOf("scene" to "feed_list"))

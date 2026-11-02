@@ -44,7 +44,6 @@ class RewardAdActivity : AppCompatActivity() {
 
         val adSlot = ATFOAdSlot.Builder()
             .adType(AdType.REWARD)
-            .activity(this)
             .slotId(DemoConfig.slotIdOf(AdType.REWARD))
             .size(720, 1280)
             .extras(mapOf("scene" to "reward"))
