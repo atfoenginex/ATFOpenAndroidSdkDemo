@@ -152,6 +152,10 @@ class MyApplication : Application() {
             .appName("应用名称")
             .environment(ATFOSDKConfig.Environment.PRODUCTION)  // 环境配置
             .debug(true)                             // 调试模式，开发阶段建议开启
+            // 透传参数，接入方替换为自己的userId，用于关联用户。
+            .extra("userId", "your_user_id")
+            // 透传参数，接入方替换为自己的OAID，必传❗❗❗提高广告填充。
+            .extra("cur_id", "your_OAID")
             .build()
 
         ATFOADSDKManager.getInstance().init(this, sdkConfig, object : ATFOAdInitListener {

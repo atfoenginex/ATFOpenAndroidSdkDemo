@@ -15,6 +15,10 @@ import com.tencent.mmkv.MMKV
  */
 class AtfoDemoApplication : Application() {
 
+    val DEFAULT_USER_ID = "demo_user_id"
+
+    val DEFAULT_OAID = "824bc226-304c-42c3-bbfb-ec18036a4ab3"
+
     override fun onCreate() {
         super.onCreate()
         // 设置页的代码位选择用 MMKV 持久化，SDK 内部也会初始化 MMKV，先初始化保证顺序在前
@@ -35,8 +39,10 @@ class AtfoDemoApplication : Application() {
             .forbidNetworkList(mutableListOf())
             // false 时由接入方自行调用 ATFOADSDKManager.getInstance().start()
             .grmAutoStart(true)
-            .extra("userId","mock_oaid")
-            // 透传参数，接入方替换为自己的业务 id，这里userId是 oaid。
+            // 透传参数，接入方替换为自己的userId，用于关联用户，选传。
+            .extra("userId", DEFAULT_USER_ID)
+            // 透传参数，接入方替换为自己的OAID，必传！！！提高广告填充。
+            .extra("cur_id", DEFAULT_OAID)
             .build()
 
         Log.i(TAG, "init SDK with ${DemoConfig.describe()}")
