@@ -1,4 +1,193 @@
-// 自定义样式（just-the-docs 约定路径 _sass/custom/custom.scss，随主题自动引入）
+// 左侧栏页内章节目录（由 _includes/footer_custom.html 注入的 ul.page-toc）
+ul.page-toc {
+  margin: 0.25rem 0 0.75rem;
+  padding: 0;
+  list-style: none;
+
+  li {
+    margin: 0;
+    list-style: none;
+  }
+
+  a {
+    display: block;
+    padding: 3px 1rem 3px 2rem;
+    font-size: 13px;
+    line-height: 1.5;
+    color: inherit;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+
+    &.active {
+      color: var(--link-color, #7253ed);
+      font-weight: 600;
+    }
+  }
+
+  li.toc-h3 a {
+    padding-left: 2.75rem;
+  }
+
+  li.toc-h4 a {
+    padding-left: 3.5rem;
+  }
+}
+
+// 目录较长，确保桌面端侧栏导航区可滚动
+@media (min-width: 50rem) {
+  .side-bar .site-nav {
+    overflow-y: auto;
+  }
+}
+
+// 正文顶部的手写目录块在站点上隐藏（GitHub 上仍保留，侧栏已固定同一份目录）
+#目录,
+#目录 + ul {
+  display: none;
+}
+
+// ==== 全局字体与阅读风格 ====
+// 目标：不动主题结构，只调字体栈、行高、代码块、表格和强调色。
+// 强调色统一为 README 徽章的 #1677FF（替换主题默认紫 #7253ed）。
+
+:root {
+  // 正文走系统字体栈（中文回退苹方 / 鸿蒙 / 雅黑），不外链 webfont，境内访问零阻塞
+  --bs-body-font-family: system-ui, -apple-system, "Segoe UI",
+    "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", "Noto Sans CJK SC",
+    sans-serif;
+  // 代码等宽栈；中文注释回退跟随正文，避免标点半角全角混排错位
+  --bs-font-monospace: "SF Mono", Menlo, Consolas, "Liberation Mono",
+    "PingFang SC", "Microsoft YaHei", monospace;
+  // 中文正文行高比主题默认更松，长段落阅读更省力
+  --bs-body-line-height: 1.78;
+  // 链接强调色（page-toc 的高亮也引用同一变量，自动跟随）
+  --link-color: #1677ff;
+  --link-color-hover: #0958d9;
+
+  // 亮暗两套共用的叠层色 token
+  --atfo-inline-code-bg: rgba(22, 119, 255, 0.07);
+  --atfo-zebra-bg: rgba(0, 0, 0, 0.02);
+  --atfo-border: rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="dark"] {
+  --atfo-inline-code-bg: rgba(255, 255, 255, 0.09);
+  --atfo-zebra-bg: rgba(255, 255, 255, 0.045);
+  --atfo-border: rgba(255, 255, 255, 0.16);
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  text-overflow: clip;
+}
+
+.main-content {
+  // 标题：微收字距 + 收紧行高，章节标题更「标题相」
+  h1, h2, h3, h4, h5, h6 {
+    letter-spacing: -0.01em;
+    line-height: 1.35;
+  }
+
+  // 行内代码：浅蓝底圆角，比默认灰底与正文过渡更柔和
+  code {
+    background: var(--atfo-inline-code-bg);
+    border: none;
+    border-radius: 5px;
+    padding: 0.15em 0.4em;
+    font-size: 87%;
+  }
+
+  // 代码块：加大圆角与内边距，行高稍紧（代码行密度高于正文）
+  .highlight {
+    border-radius: 10px;
+  }
+
+  pre.highlight,
+  figure.highlight pre,
+  .literal-block pre {
+    padding: 0.9rem 1.1rem;
+    font-size: 13.5px;
+    line-height: 1.65;
+  }
+
+  // 表格：隔行浅底 + 柔和边框，表头加重
+  th, td {
+    border-color: var(--atfo-border);
+  }
+
+  th {
+    font-weight: 600;
+  }
+
+  tbody tr:nth-child(even) {
+    background: var(--atfo-zebra-bg);
+  }
+
+  // 引用块：左侧强调色竖线，替代默认灰线
+  blockquote {
+    border-left: 3px solid var(--link-color);
+    padding: 0.1rem 1.1rem;
+    opacity: 0.88;
+  }
+
+  // 长串代码位 Id 等无空格内容允许断行，不撑破移动端布局
+  p, li {
+    overflow-wrap: break-word;
+  }
+}
+
+// 主题浅色方案对 a 标签硬编码了紫色（不走 --link-color），这里显式覆盖
+a {
+  color: var(--link-color);
+
+  &:hover,
+  &:visited {
+    color: var(--link-color);
+  }
+
+  &:hover {
+    color: var(--link-color-hover);
+  }
+}
+
+// 主题对 body 的字体栈与行高全部硬编码（不消费 :root 变量），必须同级覆盖
+body {
+  font-family: system-ui, -apple-system, "Segoe UI",
+    "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", "Noto Sans CJK SC",
+    sans-serif;
+  line-height: 1.78;
+}
+
+// 行高真正生效的位置在 .main-content（主题硬编码 1.6），与 body 同步覆盖
+.main-content {
+  line-height: 1.78;
+}
+
+// 侧栏激活项：主题选择器为 .nav-list .nav-list-item .nav-list-link.active（特异性更高），
+// 这里用同链选择器覆盖，悬停与激活统一到品牌蓝
+.nav-list .nav-list-item .nav-list-link:hover,
+.nav-list .nav-list-item .nav-list-link.active {
+  color: var(--link-color);
+}
+
+.nav-list .nav-list-item .nav-list-link.active {
+  font-weight: 600;
+}
+
+// 侧栏导航主题硬编码 12px，中文偏小；调大一档，页内目录保持小一号的层级差
+.nav-list-link,
+.nav-list-expander,
+.nav-category {
+  font-size: 14px;
+}
+
+.search-input:focus {
+  border-color: var(--link-color);
+}
+
 // 侧栏站点标题默认字号过大，长标题「ATFO OpenAdSDK 接入指南」会折成多行，缩小到与导航协调
 .site-title {
   font-size: 1.1rem !important;
