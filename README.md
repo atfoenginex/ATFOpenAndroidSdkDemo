@@ -1,6 +1,6 @@
 # ATFOpenAndroidSdkDemo
 
-ATFO OpenAdSDK（`com.atfo.ad:core`）Android 接入示例，覆盖开屏、信息流（模板渲染 / 宿主自渲染两页）、插屏、激励视频、通知广告五类，共六个页面。
+ATFO OpenAdSDK（`com.atfo.ad:core`）Android 接入示例，覆盖开屏、信息流（模板渲染 / 宿主自渲染两页）、插屏、激励视频（含服务端奖励校验 SSV）、通知广告五类，共六个广告页面，外加一个设置页（调试面板入口 + 代码位切换）。
 
 <!-- SDK-VERSION:START -->
 ![SDK 最新版本](https://img.shields.io/badge/SDK%20最新版本-2.12.0-1677FF?logo=android&logoColor=white&style=for-the-badge)
@@ -16,6 +16,8 @@ ATFO OpenAdSDK（`com.atfo.ad:core`）Android 接入示例，覆盖开屏、信�
 - [3. 运行](#3-运行)
 - [4. 查看接入代码](#4-查看接入代码)
 - [5. 三方广告网络 adapter](#5-三方广告网络-adapter)
+- [6. 激励视频发奖（2.12.0）](#6-激励视频发奖2120)
+- [7. 可选：运行环境要求（2.12.0 新增）](#7-可选运行环境要求2120-新增)
 
 ## 接入文档
 
@@ -69,7 +71,7 @@ atfo.notifySlotId=
 
 `local.properties` 已被 `.gitignore` 忽略，不会误提交密钥。
 
-- 信息流按渲染方式分两个代码位：`atfo.feedSlotId` 后台配成「ATFO 模板渲染」给模板页用，`atfo.feedSelfRenderSlotId` 配成「自渲染」给自渲染页用。加载日志/Toast 里的 `renderType` 会标明本次物料类型，配错时 Toast 直接提示。
+- 信息流按渲染方式分两个代码位：`atfo.feedSlotId` 后台配成「ATFO 模板渲染」给模板页用，`atfo.feedSelfRenderSlotId` 配成「自渲染」给自渲染页用。加载日志里的 `renderType` 会标明本次物料类型，配错时页面底部 ConsoleView 会直接提示。
 - 每个 key 都要保留 `atfo.` 前缀，去掉前缀的写法读不到。
 
 ## 3. 运行
@@ -84,7 +86,7 @@ export ANDROID_HOME=$HOME/Library/Android/sdk      # macOS 示例
 
 ## 4. 查看接入代码
 
-主页六个按钮各对应一个接入示例，每页一个独立 Activity（配套同名布局 `activity_<类型>_ad.xml`），可直接整文件复制到自己的工程：
+主页六个广告入口各对应一个接入示例（另有「设置」页），每页一个独立 Activity（配套同名布局 `activity_<类型>_ad.xml`），可直接整文件复制到自己的工程：
 
 | 广告类型 | 文件 |
 |---|---|
@@ -137,3 +139,20 @@ GDTAdSourceInitializer.register()
 ```
 
 不需要某家网络参与时，把对应 `AdSource` 放进初始化参数的 `forbidNetworkList` 即可禁用，`AtfoDemoApplication.kt` 里有注释示例。
+
+## 6. 激励视频发奖（2.12.0）
+
+从 2.12.0 起发奖判定统一看 `onRewardResult(verified)`：
+
+- `onReward()` 只在三方广告源达标时回调，不要再在这里直接发奖；
+- API（core 自渲染）激励开启 SSV 后，`verified=true` 表示服务端已确认，可发奖；未下发凭证时直接回调 `verified=false`；
+- 广告位侧用 `ATFOAdSlot.Builder().rewardUserKey("稳定业务用户ID")` 传对账标识，不设则回退初始化时的 `userId`；
+- 展示期间（未收到 `onAdClosed`）**不要**在 `onDestroy()` 里销毁广告对象，`destroy()` 按放弃奖励处理，会丢失本次 `onRewardResult`。
+
+完整示例见 `app/src/main/java/com/atfo/ad/demo/reward/RewardAdActivity.kt`，契约细节见在线文档「激励视频广告 → 发奖结果与服务端校验（SSV）」。
+
+## 7. 可选：运行环境要求（2.12.0 新增）
+
+- 应用下载广告需要 `REQUEST_INSTALL_PACKAGES`（SDK 的 AAR 已声明），26+ 运行时按 `canRequestPackageInstalls` 引导用户授权；
+- SDK 已声明 `MAIN` + `LAUNCHER` 的 `<queries>`，宿主无需再逐个点名微信 / 支付宝；
+- AAR 会合并 3 个 Activity 和 2 个 FileProvider（`${applicationId}.atfo.debugfile`、`${applicationId}.atfo.downloadfile`），用的都是独立子类，不会与宿主冲突。

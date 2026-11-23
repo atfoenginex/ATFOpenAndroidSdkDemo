@@ -22,6 +22,13 @@ object DemoConfig {
     val environment: ATFOSDKConfig.Environment =
         ATFOSDKConfig.Environment.valueOf(BuildConfig.ATFO_ENV)
 
+    /**
+     * 演示用的业务用户标识，初始化时作为 `extra("userId")` 透传，激励视频又作为
+     * `ATFOAdSlot.Builder#rewardUserKey` 传入（SSV 服务端按 user_key + rewardId 与媒体后端对账）。
+     * 真实接入请替换为账号 ID 等稳定值，不要用设备号 / 会话 ID。
+     */
+    const val userKey = "demo_user_id"
+
     /** 未配置真实账户时的占位标记，页面据此提示而不是静默失败。 */
     fun isAccountConfigured(): Boolean =
         !appId.startsWith("your_") && !secret.startsWith("your_")

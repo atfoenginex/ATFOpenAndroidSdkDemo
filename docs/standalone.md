@@ -94,12 +94,12 @@ dependencyResolutionManagement {
 
 2、在项目的 app 下的 `build.gradle.kts` 中添加依赖：
 
-**最新版本号：2.11.0**
+**最新版本号：2.12.0**
 
 ```kotlin
 dependencies {
     // ATFO 广告核心组件
-    implementation("com.atfo.ad:core:2.11.0")
+    implementation("com.atfo.ad:core:2.12.0")
 }
 ```
 
@@ -107,23 +107,48 @@ dependencies {
 
 ### 2、权限配置
 
-在 `AndroidManifest.xml` 中添加必要的权限：
+**以下权限 SDK 自身已在 AAR 的 `AndroidManifest.xml` 中声明，宿主无需重复添加**；列出来只是为了说明用途和合规审核。宿主主动申请运行时权限的，只有可选的读取电话状态 / 位置两项。
 
 ```xml
-<!-- Network permissions -->
-<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+<!-- 必需：网络 -->
 <uses-permission android:name="android.permission.INTERNET" />
+<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
-<!-- 可选权限（防作弊+优化广告投放） -->
+<!-- 可选：防作弊 + 优化广告投放（需要宿主运行时申请才生效） -->
 <uses-permission android:name="android.permission.READ_BASIC_PHONE_STATE" />
 <uses-permission android:name="android.permission.READ_PHONE_STATE" />
 <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
 
-<!-- 通知栏震动反馈 -->
+<!-- 通知栏震动反馈（仅后台 configs.notice.vibrate 开启时使用） -->
 <uses-permission android:name="android.permission.VIBRATE" />
+
+<!-- 应用下载广告：下载完成后拉起安装器（8.0 以下系统忽略；26+ 运行时按 canRequestPackageInstalls 引导） -->
+<uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 ```
+
+#### 包可见性（`<queries>`）
+
+SDK 已声明 `MAIN` + `LAUNCHER` 的 `<queries>`，即「所有桌面可见的应用」对 SDK 可见。这是 targetSdk 30+ 的必要条件：
+
+- deeplink 落地页的 `resolveActivity` / `getLaunchIntentForPackage`，不声明会假阴性，明明能打开却判「无应用响应」；
+- 应用下载广告检查「是否已安装」，不声明会把已安装的应用判为未安装而重复下载；
+- MIUI/HyperOS 链式启动适配读取微信、支付宝 uid。
+
+只解除系统查询过滤，不采集任何数据。宿主自己也有 `<queries>` 时合并即可，不冲突。
+
+#### 合并进来的组件（无需宿主声明）
+
+| 类型 | 名称 | 说明 |
+|---|---|---|
+| Activity | `com.atfo.ad.webview.ATFOWebViewActivity` | 落地页 H5 展示 |
+| Activity | `com.atfo.ad.activity.ATFORewardVideoAdActivity` | 激励视频全屏页 |
+| Activity | `com.atfo.ad.debug.ATFODebugActivity` | 调试面板（`enabled=false`，仅调试入口唤起） |
+| Provider | `${applicationId}.atfo.debugfile` | 调试面板导出分享 |
+| Provider | `${applicationId}.atfo.downloadfile` | 应用下载广告 APK 安装 |
+
+两个 Provider 都使用独立子类和 `${applicationId}` 前缀的 authority，不会与宿主或其他 adapter 的 FileProvider 冲突，不需要在宿主里写 `tools:replace`。
 
 ## 二、SDK 初始化
 
@@ -197,8 +222,11 @@ SDK 支持多种环境配置：
 
 ```kotlin
 // 设置透传参数（key 在前，value 在后）
-.extra("cur_id", "android_mock_oaid_123")
+.extra("userId", "业务用户ID")     // 选传：关联用户，激励 SSV 的 rewardUserKey 未设置时回退到它
+.extra("cur_id", "android_mock_oaid_123")  // 选传：宿主持有的 OAID，不传时 SDK 自行获取
 ```
+
+其余参数：`grmAutoStart`（GroMore 自动 start，默认 `true`；置 `false` 需宿主自行调用 `ATFOADSDKManager.start()`）、`forbidNetworkList`（禁用的广告网络列表，默认空）、`debug`（调试日志，默认 `false`）。
 
 ## 三、广告加载和展示
 
@@ -237,8 +265,8 @@ class SplashActivity : AppCompatActivity() {
                 // 广告加载成功
                 Log.d("SplashAd", "广告加载成功")
                 Log.d("SplashAd", "广告ID: ${adObject.adId}")
-                // 如获取价格方法不存在，请联系运营
-                Log.d("SplashAd", "价格: ${adObject.price}")
+                // 单位是分。取价需「带价格」版本 SDK（release 默认无 price 字段），用反射取值，见下文 AdPriceUtils。
+                Log.d("SplashAd", "价格: "${AdPriceUtils.getPrice(adObject)})
 
                 splashAdObject = adObject
 
@@ -332,8 +360,8 @@ class FeedAdActivity : AppCompatActivity() {
             override fun onAdLoadSuccess(adObject: ATFOAd) {
                 Log.d("FeedAd", "信息流广告加载成功")
                 Log.d("FeedAd", "广告ID: ${adObject.adId}")
-                // 如获取价格方法不存在，请联系运营
-                Log.d("FeedAd", "价格: ${adObject.price}")
+                // 单位是分。取价需「带价格」版本 SDK（release 默认无 price 字段），用反射取值，见下文 AdPriceUtils。
+                Log.d("FeedAd", "价格: "${AdPriceUtils.getPrice(adObject)})
 
                 feedAdObject = adObject
 
@@ -520,7 +548,12 @@ private fun interactionListener(): AdInteractionListener = object : AdInteractio
 - 自渲染广告不要调用 `showAd`，否则物料无法展示；
 - `nativeInfo` 为空或 `hasRenderableMaterial()` 为 `false` 时按渲染失败处理；
 - `sdkVideoRender = true` 时视频由三方 SDK 渲染，必须使用 `getAdView()`，不能自行用 `videoUrl` 播放；
-- `adLogo` 为广告合规角标，需要展示在广告视图上；
+- `adLogo` 为广告合规角标，需要展示在广告视图上。**两种做法二选一，别混用**：
+  - 宿主自己画角标：读取 `info.adLogo?.url` 或 `info.adLogo?.bitmap` 画到卡片上，`registerInteraction` 里 **不要** 传 `adLogoParams`，否则会出现两个角标；
+  - 交给 SDK 画：不读 `adLogo`，把 `adLogoParams` 传给 `registerInteraction`，由 SDK 按该参数定位角标；
+- `buttonText` 可能是文案，也可能是图片 URL（`http` / `https` 开头），是图片时用 ImageView 加载，别当文字直接显示；
+- `sdkVideoRender = false` 时用 `videoUrl` 在媒体位自播（宿主自建 VideoView，建议静音 + 循环，避免与原声冲突）；
+- 判断顺序：先看 `nativeInfo` 是否为空、`hasRenderableMaterial()` 是否为 `false`（渲染失败），再取 `getAdView()`；
 - 容器需先加入视图树再调用 `registerInteraction`；
 - 广告对象使用完毕后调用 `destroy()` 释放。
 
@@ -552,8 +585,8 @@ class InterstitialAdActivity : AppCompatActivity() {
             override fun onAdLoadSuccess(adObject: ATFOAd) {
                 Log.d("InterstitialAd", "插屏广告加载成功")
                 Log.d("InterstitialAd", "广告ID: ${adObject.adId}")
-                // 如获取价格方法不存在，请联系运营
-                Log.d("InterstitialAd", "价格: ${adObject.price}")
+                // 单位是分。取价需「带价格」版本 SDK（release 默认无 price 字段），用反射取值，见下文 AdPriceUtils。
+                Log.d("InterstitialAd", "价格: "${AdPriceUtils.getPrice(adObject)})
 
                 interstitialAdObject = adObject
 
@@ -616,6 +649,13 @@ class RewardAdActivity : AppCompatActivity() {
 
     private var rewardAdObject: ATFOAd? = null
 
+    /**
+     * 激励页展示中（showAd 后到 onAdClosed 前）。展示期间销毁广告对象按「放弃奖励」处理：
+     * 已提交的服务端校验请求继续执行，但 onRewardVerified / onRewardVerifyFailed / onRewardResult
+     * 都不再投递，本次奖励会永久丢失。
+     */
+    private var rewardShowing = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_reward)
@@ -627,20 +667,21 @@ class RewardAdActivity : AppCompatActivity() {
     private fun loadRewardAd() {
         val adSlot = ATFOAdSlot.Builder()
             .adType(AdType.REWARD)
-            .timeout(10000)                   // 可选；超时以管理后台下发为准，建议不配置（见「注意事项」）
+            // 可选；超时以管理后台下发为准，建议不配置（见「注意事项」）
+            // .timeout(10000)
             .slotId("") // 代码位 Id（向对接运营获取）
             .size(720, 1280)
             .extras(mapOf("scene" to "reward"))
+            // 服务端奖励校验（SSV）对账的 user_key：稳定的业务用户标识（如账号 ID），
+            // 不要用设备号 / 会话 ID；不设置时 SDK 回退初始化配置里的 userId
+            .rewardUserKey("业务用户标识")
             .build()
 
         ATFOAdLoader(this, true).loadAd(adSlot, object : ATFOAdLoader.AdLoadListener {
             override fun onAdLoadSuccess(adObject: ATFOAd) {
-                Log.d("RewardAd", "激励视频广告加载成功")
-                Log.d("RewardAd", "广告ID: ${adObject.adId}")
-                Log.d("RewardAd", "广告类型: ${adObject.adType}")
-                // 如获取价格方法不存在，请联系运营
-                Log.d("RewardAd", "价格: ${adObject.price}")
-
+                Log.d("RewardAd", "激励视频广告加载成功, 广告ID: ${adObject.adId}")
+                // 单位是分。取价需要「带价格」版本的 SDK，release 默认不带 price 字段，
+                // 直接访问 adObject.price 会编译不过，需用反射并判空
                 rewardAdObject = adObject
 
                 // 根据业务时机展示广告
@@ -661,14 +702,18 @@ class RewardAdActivity : AppCompatActivity() {
             return
         }
 
-        // 激励视频广告为全屏展示，无需传入广告容器
+        rewardShowing = true
+
+        // 激励视频广告为全屏展示，传入当前 Activity 即可
         adObject.showAd(this, object : AdInteractionListener {
             override fun onAdShowSuccess() {
                 Log.d("RewardAd", "激励视频广告展示成功")
             }
 
             override fun onAdShowFailed(errorCode: Int, errorMessage: String) {
-                Log.e("RewardAd", "激励视频广告展示失败: $errorMessage")
+                // 拉起超时 / 渲染失败后广告对象已作废，需重新 loadAd，不会再回调 onAdClosed
+                rewardShowing = false
+                Log.e("RewardAd", "激励视频广告展示失败: $errorCode, $errorMessage")
             }
 
             override fun onAdClicked() {
@@ -676,6 +721,10 @@ class RewardAdActivity : AppCompatActivity() {
             }
 
             override fun onAdClosed() {
+                // 页面已关闭、校验结论已到（或按放弃处理），此时销毁安全
+                rewardShowing = false
+                rewardAdObject?.destroy()
+                rewardAdObject = null
                 Log.d("RewardAd", "激励视频广告被关闭")
             }
 
@@ -688,18 +737,81 @@ class RewardAdActivity : AppCompatActivity() {
             }
 
             override fun onReward() {
-                Log.d("RewardAd", "激励视频广告获得奖励")
-                // 在这里处理业务发奖逻辑
+                // 只有三方广告源会回调这里（本地达标，无服务端校验）；API 激励不走本回调
+                Log.d("RewardAd", "激励视频广告获得奖励（三方广告源）")
+            }
+
+            override fun onRewardVerified(result: RewardVerificationResult) {
+                Log.d("RewardAd", "服务端校验通过: rewardId=${result.rewardId}, duplicate=${result.duplicate}")
+            }
+
+            override fun onRewardVerifyFailed(errorCode: Int, errorMessage: String) {
+                Log.w("RewardAd", "服务端校验失败: $errorCode, $errorMessage")
+            }
+
+            override fun onRewardResult(verified: Boolean) {
+                // 唯一发奖判定点，每个广告对象最多回调一次，宿主发奖须幂等
+                Log.d("RewardAd", "发奖结果: verified=$verified")
             }
         })
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        rewardAdObject?.destroy()
+        // 展示期间（未收到 onAdClosed）不销毁：destroy() 按放弃处理，本次 onRewardResult 会永久丢失；
+        // 这种情况由 onAdClosed 兜底销毁，避免广告对象泄漏
+        if (!rewardShowing) {
+            rewardAdObject?.destroy()
+            rewardAdObject = null
+        }
     }
 }
 ```
+
+#### 发奖结果与服务端校验（SSV）
+
+> 从 2.12.0 起，发奖判定统一看 `onRewardResult(verified)`；`onReward()` 只在三方广告源达标时回调，**不要只靠 `onReward()` 发奖**，否则 API（core 自渲染）激励会漏发。
+>
+> **Java 接入方注意**：`onRewardVerified` / `onRewardVerifyFailed` / `onRewardResult` 在 Kotlin 侧有默认实现，Java 没有。从 2.11.1 起 `AdInteractionListener` 新增了这三个方法，Java 实现的监听器不补齐会编译不过。
+
+广告位在聚合平台开启 SSV（服务端奖励校验）后，服务端会在 RTB 自渲染激励视频的响应里下发一次性发奖凭证 `reward_verification`。SDK 在本地达到发奖条件时把凭证提交给服务端确认，拿到结论后才回调 `onRewardResult`。接入方只需要设置一个字段：
+
+```kotlin
+ATFOAdSlot.Builder()
+    .adType(AdType.REWARD)
+    .slotId("your_reward_slot_id")
+    // 透传给服务端的 user_key，用于媒体后端对账；不设置时回退初始化配置的 userId。
+    // 必须是稳定的业务用户标识（如账号 ID），不要用设备号 / 会话 ID
+    .rewardUserKey("业务用户标识")
+    .build()
+```
+
+四个回调的语义：
+
+| 回调 | 触发时机 |
+|---|---|
+| `onReward()` | 仅三方广告源：本地达到发奖条件时回调。API 激励不回调 |
+| `onRewardVerified(result)` | 服务端确认成功。`result` 带 `rewardId` / `verified` / `duplicate` / `verifiedAt`（毫秒） |
+| `onRewardVerifyFailed(errorCode, errorMessage)` | 凭证无效、已过期，或重试最终失败 |
+| `onRewardResult(verified)` | 本条发奖链路的最终结论，在上述奖励相关回调之后回调**一次**。API 激励唯一的发奖信号 |
+
+`onRewardVerifyFailed` 的错误码：
+
+| 常量 | 数值 | 含义 |
+|---|---|---|
+| `ATFORewardVerifyError.ERROR_NETWORK` | 1101 | 网络异常 / 超时 408 / 限流 429 / 5xx，重试（立即 → 2s → 2s → 6s → 9s，30s 后不再发起）已耗尽；或 2xx 响应体异常 |
+| `ATFORewardVerifyError.ERROR_REJECTED` | 1102 | 凭证被服务端拒绝：400 / 其他终局 4xx（408、429 除外），或 2xx `verified=false` |
+| `ATFORewardVerifyError.ERROR_EXPIRED` | 1103 | 凭证已过期（服务端 410，或 SDK 每次尝试前按设备时钟本地预判过期） |
+
+关键约定：
+
+- **一切失败统一收尾**：`onRewardResult(false)`，页面只弹「播放完成」，不出现任何奖励文案，宿主不得发奖。
+- **未下发凭证**（老服务端 / 未开 SSV / 签发失败）：不发校验请求，也不会有 `onRewardVerified` / `onRewardVerifyFailed`，达到条件时直接 `onRewardResult(false)`，页面照常展示「已获得奖励」。
+- **发奖条件未达到**（中途 ✕ 放弃）：不发起校验，也不回调 `onRewardResult`。
+- **`destroy()` 按放弃处理**：校验未出结论时 destroy，结论不再投递宿主；发奖条件未到达时 destroy，本次不发起校验。所以**展示期间（未收到 `onAdClosed`）不要在 `onDestroy()` 里 destroy**，示例代码用 `rewardShowing` 标志处理。
+- **`onRewardResult` 每个广告对象只回调一次**，宿主发奖逻辑仍须幂等。
+- **强防作弊以后端为准**：服务端会把校验记录异步回调给媒体后端，按 `user_key + rewardId` 发奖；客户端回调只用于决定发奖时机。
+- 页面表现（顶部奖励提示、结束层文案、✕ 关闭时机）全部由 SDK 控制，宿主不需要自绘。
 
 ### 通知广告
 
@@ -741,8 +853,8 @@ class NotifyAdActivity : AppCompatActivity() {
             override fun onAdLoadSuccess(adObject: ATFOAd) {
                 Log.d("NotifyAd", "通知广告加载成功")
                 Log.d("NotifyAd", "广告ID: ${adObject.adId}")
-                // 如获取价格方法不存在，请联系运营
-                Log.d("NotifyAd", "价格: ${adObject.price}")
+                // 单位是分。取价需「带价格」版本 SDK（release 默认无 price 字段），用反射取值，见下文 AdPriceUtils。
+                Log.d("NotifyAd", "价格: "${AdPriceUtils.getPrice(adObject)})
 
                 notifyAdObject = adObject
 
@@ -854,7 +966,7 @@ adObject.sendLossNotification(mBidFeedback)
 | `SIGMOB`   | sigmob  |
 | `WM`       | 旺脉      |
 
-其他平台，使用字符串 OTHER
+其他平台（如泛为 FW 等未在上表列出的渠道），`AdSource.fromString` 返回 `null`，竞价回传时按 `null` 处理
 
 ## 五、清理广告缓存
 
@@ -982,6 +1094,14 @@ override fun onAdLoadFailed(error: ATFOAdError) {
 > ```
 >
 > 在页面中导出日志后，把日志文件发给对接的研发即可。
+>
+> 也可以在自己应用的调试页里直接调用（代码方式，不需要知道 Activity 全名）：
+>
+> ```kotlin
+> import com.atfo.ad.debug.DebugManager
+>
+> DebugManager.openDebugActivity(context)   // SDK 初始化时 debug=true 才可用
+> ```
 
 ## 十、注意事项
 
@@ -997,7 +1117,7 @@ override fun onAdLoadFailed(error: ATFOAdError) {
 ## 十一、技术支持
 
 - **技术支持**：support@atfo.com
-- **版本**：2.11.0
+- **版本**：2.12.0
 - **最低支持**：Android API 23（Android 6.0）
 
 ## 十二、SDK 涉及的三方库版本（若存在不兼容等问题，请联系开发进行定制化修改）
