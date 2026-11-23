@@ -193,3 +193,73 @@ body {
   font-size: 1.1rem !important;
   line-height: 1.4 !important;
 }
+
+// ==== 专业度打磨 ====
+// 标题节奏：h1 收敛到文档感字号，h2 加发丝分隔线让长文档章节边界更清楚
+.main-content {
+  h1 {
+    font-size: 1.85rem;
+    margin-top: 0;
+  }
+
+  h2 {
+    font-size: 1.3rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid var(--atfo-border);
+  }
+
+  h3 {
+    font-size: 1.12rem;
+  }
+}
+
+// 表格：数字等宽让代码位 Id / 错误码 / 价格列纵向对齐，表头加重压住整表
+.main-content table {
+  font-size: 14px;
+
+  th,
+  td {
+    padding: 0.45rem 0.75rem;
+  }
+
+  th {
+    border-bottom: 2px solid var(--atfo-border);
+  }
+
+  td {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+// 代码块加细边框，与正文底色区分更清楚（暗色由同一 token 自适应）
+.main-content .highlight {
+  border: 1px solid var(--atfo-border);
+}
+
+// 侧栏激活项左侧指示条：主题靠 padding-left 表达层级，
+// 加 border 会挤动布局，改用 inset 阴影画在行内
+.nav-list .nav-list-item .nav-list-link.active {
+  box-shadow: inset 3px 0 0 var(--link-color);
+}
+
+// 桌面端侧栏换细滚动条，减少灰色块面
+@media (min-width: 50rem) {
+  .side-bar .site-nav {
+    scrollbar-width: thin;
+    scrollbar-color: var(--atfo-border) transparent;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: var(--atfo-border);
+      border-radius: 3px;
+    }
+  }
+}
+
+// 文本选中色跟随品牌蓝
+::selection {
+  background: rgba(22, 119, 255, 0.18);
+}
