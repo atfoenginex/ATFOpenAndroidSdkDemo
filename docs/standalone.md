@@ -1031,6 +1031,7 @@ loader.cancelLoad()
 | 1009 | `ATFOAdError.ERROR_BIDDING_FAILED` | 竞价失败 |
 | 1010 | `ATFOAdError.ERROR_CONFIG_FAILED` | 配置获取失败 |
 | 1011 | `ATFOAdError.ERROR_INVALID_RENDER_TYPE` | 渲染类型无效 |
+| 10000 | — | 代码位已被服务端关闭，不再参与加载（2.13.0 起，无专属常量，按 code 判断） |
 
 处理示例：
 
