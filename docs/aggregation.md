@@ -96,34 +96,34 @@ dependencyResolutionManagement {
 
 2、在项目的 app 下的 `build.gradle.kts` 中添加依赖：
 
-**最新版本号：2.12.0**
+**最新版本号：2.13.0**
 
 ```kotlin
 dependencies {
     // ATFO 广告核心组件
-    implementation("com.atfo.ad:core:2.12.0")
+    implementation("com.atfo.ad:core:2.13.0")
     // 百度
-    implementation("com.atfo.ad.adapt:adapt-baidu:2.12.0")
+    implementation("com.atfo.ad.adapt:adapt-baidu:2.13.0")
     // 倍孜
-    implementation("com.atfo.ad.adapt:adapt-bz:2.12.0")
+    implementation("com.atfo.ad.adapt:adapt-bz:2.13.0")
     // 优量汇（广点通）
-    implementation("com.atfo.ad.adapt:adapt-gdt:2.12.0")
+    implementation("com.atfo.ad.adapt:adapt-gdt:2.13.0")
     // GroMore（穿山甲聚合）
-    implementation("com.atfo.ad.adapt:adapt-gromore:2.12.0")
+    implementation("com.atfo.ad.adapt:adapt-gromore:2.13.0")
     // 快手
-    implementation("com.atfo.ad.adapt:adapt-ks:2.12.0")
+    implementation("com.atfo.ad.adapt:adapt-ks:2.13.0")
     // 美数
-    implementation("com.atfo.ad.adapt:adapt-ms:2.12.0")
+    implementation("com.atfo.ad.adapt:adapt-ms:2.13.0")
     // 汇川
-    implementation("com.atfo.ad.adapt:adapt-noah:2.12.0")
+    implementation("com.atfo.ad.adapt:adapt-noah:2.13.0")
     // 趣盟
-    implementation("com.atfo.ad.adapt:adapt-qumeng:2.12.0")
+    implementation("com.atfo.ad.adapt:adapt-qumeng:2.13.0")
     // 优酷
-    implementation("com.atfo.ad.adapt:adapt-yk:2.12.0")
+    implementation("com.atfo.ad.adapt:adapt-yk:2.13.0")
     // Sigmob
-    implementation("com.atfo.ad.adapt:adapt-sigmob:2.12.0")
+    implementation("com.atfo.ad.adapt:adapt-sigmob:2.13.0")
     // 旺脉
-    implementation("com.atfo.ad.adapt:adapt-wm:2.12.0")
+    implementation("com.atfo.ad.adapt:adapt-wm:2.13.0")
 }
 ```
 
@@ -161,6 +161,8 @@ SDK 已声明 `MAIN` + `LAUNCHER` 的 `<queries>`，即「所有桌面可见的�
 - deeplink 落地页的 `resolveActivity` / `getLaunchIntentForPackage`，不声明会假阴性，明明能打开却判「无应用响应」；
 - 应用下载广告检查「是否已安装」，不声明会把已安装的应用判为未安装而重复下载；
 - MIUI/HyperOS 链式启动适配读取微信、支付宝 uid。
+
+2.13.0 起 AAR 还声明了 10 个 OAID 厂商包的 `<package>` 声明（msa、华为、OPPO、vivo、荣耀、三星、魅族、华硕、联想、努比亚），供 OAID 兜底自采的厂商通道绑定调用，宿主无需重复声明；同样只解除系统查询过滤，不采集任何数据。
 
 只解除系统查询过滤，不采集任何数据。宿主自己也有 `<queries>` 时合并即可，不冲突。
 
@@ -310,12 +312,14 @@ SDK 支持多种环境配置：
 
 ```kotlin
 // 设置透传参数（key 在前，value 在后）
-.extra("cur_id", "android_mock_oaid_123")
+.extra("cur_id", "宿主的OAID")  // 必传❗❗❗提高广告填充；2.13.0 起未传时 SDK 会兜底自采（宿主值优先）
 ```
 
 ## 三、广告加载和展示
 
 加载统一走 `ATFOAdLoader(context, isDebug)`，第二个参数是调试日志开关，与初始化的 `debug` 保持一致即可；回调接口为 `ATFOAdLoader.AdLoadListener`（`onAdLoadSuccess` / `onAdLoadFailed`）。
+
+> 从 2.13.0 起，广告对象新增 `getAdFirstCategory()` / `getAdSecondCategory()`，返回本次广告的一级 / 二级行业分类（可能为 null）。Demo 的六个广告页加载成功回调里都演示了取值与输出。
 
 `showAd` 有两个入口，按广告类型选择：**Activity 入口** `showAd(activity, listener)` 用于插屏、激励视频、通知栏样式信息流；**容器入口** `showAd(container, listener)` 用于开屏与其余信息流模板；自渲染信息流不走 `showAd`，读 `ATFOAd.nativeInfo` 拼 UI 后调用 `registerInteraction`。
 
@@ -1167,6 +1171,7 @@ override fun onAdLoadFailed(error: ATFOAdError) {
 | 时区 | 时区（如：GMT+08:00） |
 | User Agent | User Agent 信息 |
 | AndroidId | 设备广告标识符 |
+| OAID | 广告标识符（2.13.0 起支持 SDK 兜底自采，厂商通道 + msa 直连；受 `CREATIVE` 广告源 `oaid` 隐私开关管控，关闭后不再采集并清缓存；自采结果默认缓存 10 天） |
 
 ### 2、三方广告平台隐私政策
 
@@ -1226,7 +1231,7 @@ override fun onAdLoadFailed(error: ATFOAdError) {
 ## 十一、技术支持
 
 - **技术支持**：support@atfo.com
-- **版本**：2.12.0
+- **版本**：2.13.0
 - **最低支持**：Android API 23（Android 6.0）
 
 ## 十二、SDK 涉及的三方库版本（若存在不兼容等问题，请联系开发进行定制化修改）
