@@ -16,9 +16,6 @@ ATFO OpenAdSDK（`com.atfo.ad:core`）Android 接入示例，覆盖开屏、信�
 - [3. 运行](#3-运行)
 - [4. 查看接入代码](#4-查看接入代码)
 - [5. 三方广告网络 adapter](#5-三方广告网络-adapter)
-- [6. 激励视频发奖（2.12.0）](#6-激励视频发奖2120)
-- [7. 可选：运行环境要求（2.12.0 新增）](#7-可选运行环境要求2120-新增)
-- [8. OAID 自动采集与广告行业分类（2.13.0 新增）](#8-oaid-自动采集与广告行业分类2130-新增)
 
 ## 接入文档
 
@@ -143,39 +140,3 @@ GDTAdSourceInitializer.register()
 
 不需要某家网络参与时，把对应 `AdSource` 放进初始化参数的 `forbidNetworkList` 即可禁用，`AtfoDemoApplication.kt` 里有注释示例。
 
-## 6. 激励视频发奖（2.12.0）
-
-从 2.12.0 起发奖判定统一看 `onRewardResult(verified)`：
-
-- `onReward()` 只在三方广告源达标时回调，不要再在这里直接发奖；
-- API（core 自渲染）激励开启 SSV 后，`verified=true` 表示服务端已确认，可发奖；未下发凭证时直接回调 `verified=false`；
-- 广告位侧用 `ATFOAdSlot.Builder().rewardUserKey("稳定业务用户ID")` 传对账标识，不设则回退初始化时的 `userId`；
-- 展示期间（未收到 `onAdClosed`）**不要**在 `onDestroy()` 里销毁广告对象，`destroy()` 按放弃奖励处理，会丢失本次 `onRewardResult`。
-
-完整示例见 `app/src/main/java/com/atfo/ad/demo/reward/RewardAdActivity.kt`，契约细节见在线文档「激励视频广告 → 发奖结果与服务端校验（SSV）」。
-
-## 7. 可选：运行环境要求（2.12.0 新增）
-
-- 应用下载广告需要 `REQUEST_INSTALL_PACKAGES`（SDK 的 AAR 已声明），26+ 运行时按 `canRequestPackageInstalls` 引导用户授权；
-- SDK 已声明 `MAIN` + `LAUNCHER` 的 `<queries>`；
-- AAR 会合并 3 个 Activity 和 2 个 FileProvider（`${applicationId}.atfo.debugfile`、`${applicationId}.atfo.downloadfile`），用的都是独立子类，不会与宿主冲突。
-
-## 8. OAID 自动采集与广告行业分类（2.13.0 新增）
-
-**OAID 兜底自采**：`cur_id` 仍请必传（`.extra("cur_id", "your_OAID")`，提高广告填充）。从 2.13.0 起，未传时 SDK 会兜底自采 OAID（厂商通道 + msa 直连），填充不再依赖宿主传值：
-
-- 优先级：宿主传入的 `cur_id` 优先；未传时用 SDK 自采结果，采到后缓存（默认 10 天 TTL，可由服务端 sdk_options 的 `oaid_cache_ttl_days` 调整），首次请求可能为空；
-- 合规：宿主传入的 `cur_id` 不受 SDK 隐私开关管控，合规责任在宿主；服务端应急关停 OAID 上报时，宿主需同步停传 `cur_id`；
-- 隐私开关新增管控点：`CREATIVE` 广告源的 `oaid` 开关管控 SDK 自采链路，关闭后重启进程会同时清掉 OAID 磁盘缓存；
-- AAR 已自动合并 10 个 OAID 厂商包的 `<queries>`（msa、华为、OPPO、vivo、荣耀、三星、魅族、华硕、联想、努比亚），宿主零改动；混淆规则随 AAR 自动生效。
-
-**广告行业分类**：广告对象新增 `getAdFirstCategory()` / `getAdSecondCategory()`，返回本次广告的一级 / 二级行业分类（可能为 null）：
-
-```kotlin
-ad.getAdFirstCategory()   // 一级行业分类，可能为 null
-ad.getAdSecondCategory()  // 二级行业分类，可能为 null
-```
-
-六个广告页的加载成功回调里都演示了取值与输出（logcat TAG 过滤即可看到）。
-
-**其他行为变化**：服务端已关闭的代码位不再参与加载（缓存 / 内存池 / 无缓存统一口径），无填充上报错误码 10000。
