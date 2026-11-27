@@ -108,11 +108,6 @@ class InterstitialAdActivity : AppCompatActivity() {
                 val msg = "插屏广告曝光"
                 logToConsole(msg)
             }
-
-            override fun onReward() {
-                val msg = "插屏广告收到奖励回调"
-                logToConsole(msg)
-            }
         })
     }
 

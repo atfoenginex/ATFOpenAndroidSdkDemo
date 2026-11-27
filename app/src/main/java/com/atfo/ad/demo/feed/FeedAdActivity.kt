@@ -120,11 +120,6 @@ class FeedAdActivity : AppCompatActivity() {
             val msg = "信息流广告曝光"
             logToConsole(msg)
         }
-
-        override fun onReward() {
-            val msg = "信息流广告收到奖励回调"
-            logToConsole(msg)
-        }
     }
 
     /** 打日志并追加到 ConsoleView（各回调统一走这里）；线程切换、格式化、清空都由 ConsoleView 负责。 */

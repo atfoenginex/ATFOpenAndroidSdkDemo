@@ -110,11 +110,6 @@ class NotifyAdActivity : AppCompatActivity() {
                 val msg = "通知广告曝光"
                 logToConsole(msg)
             }
-
-            override fun onReward() {
-                val msg = "通知广告收到奖励回调"
-                logToConsole(msg)
-            }
         })
     }
 

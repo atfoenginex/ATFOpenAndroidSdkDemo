@@ -108,11 +108,6 @@ class SplashAdActivity : AppCompatActivity() {
                 val msg = "开屏广告曝光"
                 logToConsole(msg)
             }
-
-            override fun onReward() {
-                val msg = "开屏广告收到奖励回调"
-                logToConsole(msg)
-            }
         })
     }
 
